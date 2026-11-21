@@ -1,6 +1,5 @@
 import type { AnalysisResult as AnalysisResultEntity } from '../../../entities/analysis';
-import { MetricCard } from '../../../shared/ui/MetricCard';
-
+import { MetricCard } from '../../../shared/ui/MetricCard'; 
 import styles from './AnalysisResult.module.css';
 
 type AnalysisResultProps = {
@@ -18,7 +17,7 @@ export function AnalysisResult({ result, onExplore }: AnalysisResultProps) {
         </div>
 
         {!result.aiAvailable && (
-          <em>AI לא זמין — הוצגו תוצאות דטרמיניסטיות בלבד</em>
+          <em>AI לא זמין - הוצגו תוצאות סטטיסטיות בלבד</em>
         )}
       </div>
 
@@ -57,11 +56,7 @@ export function AnalysisResult({ result, onExplore }: AnalysisResultProps) {
             <li key={limitation}>{limitation}</li>
           ))}
         </ul>
-      </div>
-
-      <button className={styles.explore} onClick={onExplore}>
-        לחקור את העסקאות בנתונים →
-      </button>
+      </div> 
     </section>
   );
 }

@@ -1,53 +1,68 @@
 import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { AnalysisResult } from '../../../entities/analysis';
 
+const ANALYSIS_STALE_TIME = 10 * 60 * 1000;
+
+function normalizeQuestion(question: string) {
+  return question.trim().replace(/\s+/g, ' ');
+}
+
 export function useAnalyzeQuestion() {
+  const queryClient = useQueryClient();
   const [question, setQuestion] = useState('');
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const analyze = useCallback(
-    async (questionToAnalyze = question) => {
-      const normalizedQuestion = questionToAnalyze.trim();
+    async (questionOverride?: string) => {
+      const currentQuestion = normalizeQuestion(questionOverride ?? question);
 
-      if (!normalizedQuestion || loading) {
+      if (!currentQuestion || loading) {
         return;
       }
 
-      setQuestion(normalizedQuestion);
+      setQuestion(currentQuestion);
       setLoading(true);
       setError('');
 
       try {
-        const response = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const result = await queryClient.fetchQuery({
+          queryKey: ['analysis', currentQuestion],
+          queryFn: async (): Promise<AnalysisResult> => {
+            const response = await fetch('/api/analyze', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ question: currentQuestion }),
+            });
+
+            const text = await response.text();
+            let body: { error?: string } & Partial<AnalysisResult>;
+
+            try {
+              body = JSON.parse(text);
+            } catch {
+              throw new Error(
+                response.ok
+                  ? 'השרת החזיר תשובה שאינה JSON.'
+                  : `שגיאת שרת (${response.status}).`,
+              );
+            }
+
+            if (!response.ok) {
+              throw new Error(body.error || 'אירעה שגיאה בניתוח');
+            }
+
+            return body as AnalysisResult;
           },
-          body: JSON.stringify({ question: normalizedQuestion }),
+          staleTime: ANALYSIS_STALE_TIME,
         });
 
-        const text = await response.text();
-
-        let body: { error?: string } & Partial<AnalysisResult>;
-
-        try {
-          body = JSON.parse(text);
-        } catch {
-          throw new Error(
-            response.ok
-              ? 'השרת החזיר תשובה שאינה JSON.'
-              : `שגיאת שרת (${response.status}).`,
-          );
-        }
-
-        if (!response.ok) {
-          throw new Error(body.error || 'אירעה שגיאה בניתוח');
-        }
-
-        setResults((current) => [...current, body as AnalysisResult]);
+        setResults((current) => [...current, result]);
       } catch (cause) {
         setError(
           cause instanceof Error ? cause.message : 'אירעה שגיאה לא צפויה',
@@ -56,7 +71,7 @@ export function useAnalyzeQuestion() {
         setLoading(false);
       }
     },
-    [loading, question],
+    [loading, question, queryClient],
   );
 
   return {

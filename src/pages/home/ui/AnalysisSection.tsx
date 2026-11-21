@@ -1,5 +1,4 @@
-import { QueryComposer } from '../../../features/analyze-question';
-import { AnalysisResult } from '../../../features/analyze-question';
+import { AnalysisResult, QueryComposer } from '../../../features/analyze-question';
 import { QuestionSuggestions } from '../../../features/question-suggestions';
 import type { AnalysisResult as AnalysisResultType } from '../../../entities/analysis';
 
@@ -11,7 +10,7 @@ type AnalysisSectionProps = {
   results: AnalysisResultType[];
   loading: boolean;
   error: string;
-  analyze: (question?: string) => Promise<void>;
+  analyze: (question?: string) => void;
   onExplore: () => void;
 };
 
@@ -24,35 +23,26 @@ export function AnalysisSection({
   analyze,
   onExplore,
 }: AnalysisSectionProps) {
-  const handleSuggestionSelect = (selectedQuestion: string) => {
-    setQuestion(selectedQuestion);
-    void analyze(selectedQuestion);
-  };
-
   return (
     <>
       <div className={styles.block}>
-        <QuestionSuggestions onSelect={handleSuggestionSelect} />
+        <QuestionSuggestions onSelect={analyze} />
         <QueryComposer
           value={question}
           onChange={setQuestion}
-          onSubmit={() => void analyze()}
+          onSubmit={() => analyze()}
           loading={loading}
         />
       </div>
 
       {loading && (
-        <div className={styles.loading} role="status" aria-live="polite">
+        <div className={styles.loading}>
           <span className={styles.spinner} aria-hidden="true" />
-          <span>מפרש את השאלה, מחשב את הנתונים ומכין את התשובה…</span>
+          מפרש את השאלה, מחשב את הנתונים ומכין את התשובה…
         </div>
       )}
 
-      {error && (
-        <div className={styles.error} role="alert">
-          {error}
-        </div>
-      )}
+      {error && <div className={styles.error}>{error}</div>}
 
       {results.map((result, index) => (
         <AnalysisResult

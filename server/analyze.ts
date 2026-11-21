@@ -3,24 +3,6 @@ import { loadTransactions } from './data/load.js';
 import { explain, planQuestion } from './llm/analysis.js';
 import type { AnalysisPlan } from './schemas/analysis.js';
 
-export class AnalysisUnavailableError extends Error {
-  statusCode = 503;
-
-  constructor(message = 'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.') {
-    super(message);
-    this.name = 'AnalysisUnavailableError';
-  }
-}
-
-export class UnsupportedQuestionError extends Error {
-  statusCode = 422;
-
-  constructor(message = 'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.') {
-    super(message);
-    this.name = 'UnsupportedQuestionError';
-  }
-}
-
 export type AnalysisResponse = {
   question: string;
   interpretation: string;
@@ -32,6 +14,37 @@ export type AnalysisResponse = {
   analysisRows: number;
   aiAvailable: boolean;
 };
+
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const analysisCache = new Map<
+  string,
+  { expiresAt: number; value: AnalysisResponse }
+>();
+const inFlight = new Map<string, Promise<AnalysisResponse>>();
+
+function cacheKey(question: string) {
+  return question.trim().replace(/\s+/g, ' ').toLocaleLowerCase('he-IL');
+}
+
+function getCached(key: string) {
+  const cached = analysisCache.get(key);
+
+  if (!cached) return undefined;
+
+  if (cached.expiresAt <= Date.now()) {
+    analysisCache.delete(key);
+    return undefined;
+  }
+
+  return cached.value;
+}
+
+function setCached(key: string, value: AnalysisResponse) {
+  analysisCache.set(key, {
+    expiresAt: Date.now() + CACHE_TTL_MS,
+    value,
+  });
+}
 
 function interpretation(plan: AnalysisPlan) {
   if (plan.operation === 'ranking' || plan.operation === 'group_compare') {
@@ -61,7 +74,7 @@ function fallbackUnsupportedPlan(reason: string): AnalysisPlan {
   };
 }
 
-export async function analyzeQuestion(question: string): Promise<AnalysisResponse> {
+async function runAnalysis(question: string): Promise<AnalysisResponse> {
   let plan: AnalysisPlan;
   let aiAvailable = true;
 
@@ -69,13 +82,9 @@ export async function analyzeQuestion(question: string): Promise<AnalysisRespons
     plan = await planQuestion(question);
   } catch (error) {
     console.error('LLM planning failed:', error);
-    throw new AnalysisUnavailableError();
-  }
-
-  if (plan.status === 'unsupported' || plan.operation === 'unsupported') {
-    throw new UnsupportedQuestionError(
-      plan.reason ??
-        'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
+    aiAvailable = false;
+    plan = fallbackUnsupportedPlan(
+      'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.',
     );
   }
 
@@ -103,4 +112,30 @@ export async function analyzeQuestion(question: string): Promise<AnalysisRespons
     analysisRows: computed.analysisRows,
     aiAvailable,
   };
+}
+
+export async function analyzeQuestion(question: string): Promise<AnalysisResponse> {
+  const key = cacheKey(question);
+  const cached = getCached(key);
+
+  if (cached) {
+    return cached;
+  }
+
+  const existingRequest = inFlight.get(key);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = runAnalysis(question)
+    .then((result) => {
+      setCached(key, result);
+      return result;
+    })
+    .finally(() => {
+      inFlight.delete(key);
+    });
+
+  inFlight.set(key, request);
+  return request;
 }
