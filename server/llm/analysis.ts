@@ -1,11 +1,10 @@
 import OpenAI from 'openai';
-
-import { loadTransactions } from '../data/load';
+import { loadTransactions } from '../data/load.js';
 import {
   analysisPlanJsonSchema,
   analysisPlanSchema,
   type AnalysisPlan,
-} from '../schemas/analysis';
+} from '../schemas/analysis.js';
 
 const model = process.env.OPENAI_MODEL || 'gpt-6.2-sol';
 
