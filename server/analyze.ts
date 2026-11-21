@@ -1,7 +1,7 @@
 import { executePlan } from './localCompute.js';
-import { loadTransactions } from './data/load';
-import { explain, planQuestion } from './llm/analysis';
-import type { AnalysisPlan } from './schemas/analysis';
+import { loadTransactions } from './data/load.js';
+import { explain, planQuestion } from './llm/analysis.js';
+import type { AnalysisPlan } from './schemas/analysis.js';
 
 export type AnalysisResponse = {
   question: string;
