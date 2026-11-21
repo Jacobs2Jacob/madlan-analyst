@@ -1,5 +1,5 @@
-import type { AnalysisPlan } from '../schemas/analysis';
-import type { ServerTransaction } from '../data/load';
+import type { AnalysisPlan } from './schemas/analysis';
+import type { ServerTransaction } from './data/load';
 
 type EvidenceRow = Record<string, string | number | null>;
 
