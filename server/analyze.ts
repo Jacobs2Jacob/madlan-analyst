@@ -1,4 +1,4 @@
-import { executePlan } from './localCompute';
+import { executePlan } from './localCompute.js';
 import { loadTransactions } from './data/load';
 import { explain, planQuestion } from './llm/analysis';
 import type { AnalysisPlan } from './schemas/analysis';
