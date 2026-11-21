@@ -1,0 +1,107 @@
+.result {
+  margin-top: 24px;
+}
+
+.title {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: start;
+}
+
+.title span {
+  font-size: 12px;
+  color: #777;
+}
+
+.title h2 {
+  margin: 5px 0 0;
+  font-size: 21px;
+}
+
+.title em {
+  font-size: 12px;
+  color: #8a6200;
+  background: #fff8df;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-style: normal;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.summary {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
+  padding: 18px;
+  line-height: 1.7;
+}
+
+.evidence,
+.limitations {
+  margin-top: 18px;
+}
+
+.evidence h3,
+.limitations h3 {
+  font-size: 15px;
+}
+
+.evidenceGrid {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.evidenceRow {
+  display: flex;
+  gap: 24px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.evidenceRow:last-child {
+  border-bottom: 0;
+}
+
+.evidenceRow span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 120px;
+}
+
+.evidenceRow b {
+  font-size: 11px;
+  color: #888;
+  font-weight: 500;
+}
+
+.limitations {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 14px;
+  color: #666;
+  font-size: 13px;
+}
+
+.limitations ul {
+  margin: 8px 0 0;
+}
+
+.explore {
+  margin-top: 16px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 9px;
+  padding: 9px 13px;
+  cursor: pointer;
+}

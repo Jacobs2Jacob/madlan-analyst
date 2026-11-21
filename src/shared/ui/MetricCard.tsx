@@ -1,0 +1,1 @@
+import styles from './MetricCard.module.css'; export function MetricCard({label,value}:{label:string;value:string}){return <div className={styles.card}><span>{label}</span><strong>{value}</strong></div>}

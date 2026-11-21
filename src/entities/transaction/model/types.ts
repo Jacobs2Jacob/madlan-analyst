@@ -1,0 +1,22 @@
+export type Transaction = {
+  dealId: string;
+  city: string;
+  neighborhood: string | null;
+  street: string | null;
+  propertyType: string;
+  rooms: number | null;
+  sizeSqm: number | null;
+  floor: number | null;
+  totalFloors: number | null;
+  yearBuilt: number | null;
+  condition: string | null;
+  hasElevator: boolean | null;
+  hasParking: boolean | null;
+  hasBalcony: boolean | null;
+  hasSafeRoom: boolean | null;
+  dealDate: string | null;
+  priceNis: number | null;
+  pricePerSqm: number | null;
+  pricePerSqmDerived: boolean;
+  source: string;
+};

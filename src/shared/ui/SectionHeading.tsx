@@ -1,0 +1,1 @@
+import styles from './SectionHeading.module.css'; export function SectionHeading({eyebrow,title,description}:{eyebrow?:string;title:string;description?:string}){return <div className={styles.wrap}>{eyebrow&&<span>{eyebrow}</span>}<h1>{title}</h1>{description&&<p>{description}</p>}</div>}

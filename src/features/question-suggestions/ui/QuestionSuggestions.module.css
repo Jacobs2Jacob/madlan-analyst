@@ -1,0 +1,40 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.card {
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: right;
+  cursor: pointer;
+  min-height: 112px;
+  transition: 0.15s;
+}
+
+.card:hover {
+  border-color: #aaa;
+  transform: translateY(-1px);
+}
+
+.card span {
+  display: block;
+  color: #777;
+  font-size: 12px;
+  margin-bottom: 9px;
+}
+
+.card strong {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

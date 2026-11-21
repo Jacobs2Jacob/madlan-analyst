@@ -1,0 +1,20 @@
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.loading,
+.error {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f7f7f7;
+  color: #666;
+}
+
+.error {
+  background: #fff0f0;
+  color: #9a2222;
+}
