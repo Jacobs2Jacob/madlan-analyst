@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAnalyzeQuestion } from '../../../features/analyze-question';
 import { AppHeader } from '../../../features/app-header';
@@ -11,7 +11,19 @@ type HomeSection = 'explore' | 'analysis';
 
 export function HomePage() {
   const [section, setSection] = useState<HomeSection>('explore');
-  const analysis = useAnalyzeQuestion();
+  const {question,
+         setQuestion,
+         results,
+         loading,
+         error,
+         analyze} = useAnalyzeQuestion();
+
+  useEffect(()=> {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'smooth',
+    });
+  }, [results])
 
   return (
     <main className={styles.page}>
@@ -24,10 +36,15 @@ export function HomePage() {
         <DataExplorer onAsk={() => setSection('analysis')} />
       ) : (
         <AnalysisSection
-          {...analysis}
-          onExplore={() => setSection('explore')}
-        />
+            onExplore={() => setSection('explore')} 
+            question={question} 
+            setQuestion={setQuestion} 
+            results={results} 
+            loading={loading} 
+            error={error} 
+            analyze={analyze}/>
       )}
+
     </main>
   );
 }
