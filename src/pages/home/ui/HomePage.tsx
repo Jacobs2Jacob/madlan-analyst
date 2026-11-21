@@ -27,6 +27,7 @@ export function HomePage() {
 
   return (
     <main className={styles.page}>
+       
       <AppHeader
         section={section}
         onSectionChange={setSection}

@@ -27,6 +27,7 @@ export function QueryComposer({
         maxLength={500}
         placeholder="לדוגמה: אילו ערים הכי יקרות לדירות 4 חדרים?"
         rows={4}
+        disabled={loading}
         aria-invalid={Boolean(validationMessage)}
         aria-describedby={validationMessage ? 'question-validation' : undefined}
       />
@@ -40,7 +41,10 @@ export function QueryComposer({
         )}
         <button
           type="button"
-          onClick={onSubmit}
+          onClick={()=> {
+            onChange('');
+            onSubmit();
+          }}
           disabled={loading || !trimmedValue || Boolean(validationMessage)}
         >
           {loading ? 'מנתח…' : 'נתח'}

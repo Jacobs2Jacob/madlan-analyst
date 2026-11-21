@@ -1,7 +1,6 @@
 import { AnalysisResult, QueryComposer } from '../../../features/analyze-question';
 import { QuestionSuggestions } from '../../../features/question-suggestions';
-import type { AnalysisResult as AnalysisResultType } from '../../../entities/analysis';
-
+import type { AnalysisResult as AnalysisResultType } from '../../../entities/analysis'; 
 import styles from './AnalysisSection.module.css';
 
 type AnalysisSectionProps = {
@@ -35,7 +34,7 @@ export function AnalysisSection({
 
       {loading && (
         <div className={styles.loading}>
-          <span className={styles.spinner} aria-hidden="true" />
+          <span className={styles.spinner} />
           מפרש את השאלה, מחשב את הנתונים ומכין את התשובה…
         </div>
       )}
