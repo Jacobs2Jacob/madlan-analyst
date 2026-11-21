@@ -9,13 +9,10 @@ function json(data: unknown, status = 200) {
   });
 }
 
-export default async function handler(req: Request) {
-  if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405);
-  }
-
+export async function POST(req: Request) {
   try {
-    const body: unknown = await req.json();
+    const body = await req.json();
+    
     const question =
       typeof body === 'object' &&
       body !== null &&
@@ -28,12 +25,17 @@ export default async function handler(req: Request) {
       return json({ error: 'נא להזין שאלה באורך סביר.' }, 400);
     }
 
-    return json(await analyzeQuestion(question));
-  } catch (error) {
-    console.error('Analyze request failed:', error);
-    return json(
-      { error: 'לא הצלחנו להשלים את הניתוח. אפשר לנסות שוב.' },
-      500,
+    return Response.json(await analyzeQuestion(question));
+  } 
+  catch (error) { 
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Unknown server error',
+      },
+      { status: 500 },
     );
   }
-}
+} 

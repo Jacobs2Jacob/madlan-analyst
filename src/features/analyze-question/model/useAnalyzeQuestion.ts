@@ -27,7 +27,6 @@ export function useAnalyzeQuestion() {
       console.log(response);
       const text = await response.text();
       
-      console.log(text);
       let body: { error?: string } & Partial<AnalysisResult>;
 
       try {
