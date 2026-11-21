@@ -6,16 +6,13 @@ import styles from './AnalysisResult.module.css';
 type AnalysisResultProps = {
   result: AnalysisResultEntity;
   onExplore: () => void;
-  query: string;
 };
 
-export function AnalysisResult({ result, onExplore, query }: AnalysisResultProps) {
-  
-  const [question] = useState(query);
-  
+export function AnalysisResult({ result, onExplore }: AnalysisResultProps) {
+   
   return (
     <section className={styles.result}>
-      <label>{question}</label>
+      <label>{result.question}</label>
       
       <div className={styles.title}>
         <div>

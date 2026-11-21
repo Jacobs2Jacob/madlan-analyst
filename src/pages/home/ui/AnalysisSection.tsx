@@ -26,7 +26,6 @@ export function AnalysisSection({
     <> 
       {results.map((result, index) => (
         <AnalysisResult
-          query={question}
           key={`${result.question}-${index}`}
           result={result}
           onExplore={onExplore}
