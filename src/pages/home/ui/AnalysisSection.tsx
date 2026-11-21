@@ -24,17 +24,7 @@ export function AnalysisSection({
   onExplore,
 }: AnalysisSectionProps) {
   return (
-    <>
-      <div className={styles.block}>
-        <QuestionSuggestions onSelect={analyze} />
-        <QueryComposer
-          value={question}
-          onChange={setQuestion}
-          onSubmit={() => analyze()}
-          loading={loading}
-        />
-      </div>
-
+    <> 
       {results.map((result, index) => (
         <AnalysisResult
           key={`${result.question}-${index}`}
@@ -52,6 +42,16 @@ export function AnalysisSection({
 
       {error && <div className={styles.error}>{error}</div>}
  
+      <div className={styles.block}>
+        <QuestionSuggestions onSelect={analyze} />
+        <QueryComposer
+          value={question}
+          onChange={setQuestion}
+          onSubmit={() => analyze()}
+          loading={loading}
+        />
+      </div>
+
     </>
   );
 }
