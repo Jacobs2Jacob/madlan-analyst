@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { AnalysisResult as AnalysisResultEntity } from '../../../entities/analysis';
 import { MetricCard } from '../../../shared/ui/MetricCard'; 
 import styles from './AnalysisResult.module.css';
@@ -5,11 +6,17 @@ import styles from './AnalysisResult.module.css';
 type AnalysisResultProps = {
   result: AnalysisResultEntity;
   onExplore: () => void;
+  query: string;
 };
 
-export function AnalysisResult({ result, onExplore }: AnalysisResultProps) {
+export function AnalysisResult({ result, onExplore, query }: AnalysisResultProps) {
+  
+  const [question] = useState(query);
+  
   return (
     <section className={styles.result}>
+      <label>{question}</label>
+      
       <div className={styles.title}>
         <div>
           <span>תוצאת הניתוח</span>

@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
-
+import { useEffect, useState } from 'react'; 
 import { useAnalyzeQuestion } from '../../../features/analyze-question';
 import { AppHeader } from '../../../features/app-header';
-import { DataExplorer } from '../../../features/data-explorer';
-
+import { DataExplorer } from '../../../features/data-explorer'; 
 import { AnalysisSection } from './AnalysisSection';
 import styles from './HomePage.module.css';
 

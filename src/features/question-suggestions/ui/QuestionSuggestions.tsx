@@ -21,10 +21,12 @@ export const suggestions = [
 
 type QuestionSuggestionsProps = {
   onSelect: (question: string) => void;
+  disabled: boolean
 };
 
 export function QuestionSuggestions({
   onSelect,
+  disabled
 }: QuestionSuggestionsProps) {
   return (
     <div className={styles.grid}>
@@ -32,6 +34,7 @@ export function QuestionSuggestions({
         <button
           key={suggestion.title}
           className={styles.card}
+          disabled={disabled}
           onClick={() => onSelect(suggestion.text)}
         >
           <span>{suggestion.title}</span>

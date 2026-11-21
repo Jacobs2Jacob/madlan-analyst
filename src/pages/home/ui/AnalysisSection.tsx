@@ -26,12 +26,13 @@ export function AnalysisSection({
     <> 
       {results.map((result, index) => (
         <AnalysisResult
+          query={question}
           key={`${result.question}-${index}`}
           result={result}
           onExplore={onExplore}
         />
       ))}
-
+      
       {loading && (
         <div className={styles.loading}>
           <span className={styles.spinner} />
@@ -42,7 +43,7 @@ export function AnalysisSection({
       {error && <div className={styles.error}>{error}</div>}
  
       <div className={styles.block}>
-        <QuestionSuggestions onSelect={analyze} />
+        <QuestionSuggestions disabled={loading} onSelect={analyze} />
         <QueryComposer
           value={question}
           onChange={setQuestion}

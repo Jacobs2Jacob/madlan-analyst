@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-
 import type { AnalysisResult } from '../../../entities/analysis';
 
 const ANALYSIS_STALE_TIME = 10 * 60 * 1000;
@@ -16,15 +15,14 @@ export function useAnalyzeQuestion() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const analyze = useCallback(async (questionOverride?: string) => {
-      const currentQuestion = normalizeQuestion(questionOverride ?? question);
-
-      setQuestion(currentQuestion);
-       
+  const analyze = useCallback(async (override?: string) => {
+      const currentQuestion = normalizeQuestion(override ?? question);
+      
       if (!currentQuestion || loading) {
         return;
       }
 
+      setQuestion(currentQuestion);
       setLoading(true);
       setError('');
 
@@ -32,6 +30,7 @@ export function useAnalyzeQuestion() {
         const result = await queryClient.fetchQuery({
           queryKey: ['analysis', currentQuestion],
           queryFn: async (): Promise<AnalysisResult> => {
+            // TODO: move to api
             const response = await fetch('/api/analyze', {
               method: 'POST',
               headers: {
@@ -69,6 +68,7 @@ export function useAnalyzeQuestion() {
         );
       } finally {
         setLoading(false);
+        setQuestion('');
       }
     },
     [loading, question, queryClient],
