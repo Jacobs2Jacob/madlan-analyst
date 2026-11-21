@@ -174,7 +174,16 @@ export async function explain(
   const response = await client.responses.create({
     model,
     instructions:
-      'You explain grounded real-estate analytics results in Hebrew. Use ONLY the supplied computed evidence. Never invent numbers, causes, missing data, or facts. Be concise. Distinguish observed association/difference from causation. Return plain text only.',
+      `You explain grounded real-estate analytics results in Hebrew. 
+       Use ONLY the supplied computed evidence. 
+       Never invent numbers, causes, missing data, or facts.
+       Be concise. Distinguish observed association/difference from causation. 
+       
+       Formatting rules:
+        - Never use the em dash character "—".
+        - Use "-" instead.
+        - Use paragraphs and line breaks to make the response easy to read.
+        - Do not return HTML.`,
     input: `User question: ${question}
 
 Analysis plan:
