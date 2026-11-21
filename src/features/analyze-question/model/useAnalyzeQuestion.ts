@@ -16,15 +16,15 @@ export function useAnalyzeQuestion() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const analyze = useCallback(
-    async (questionOverride?: string) => {
+  const analyze = useCallback(async (questionOverride?: string) => {
       const currentQuestion = normalizeQuestion(questionOverride ?? question);
 
+      setQuestion(currentQuestion);
+       
       if (!currentQuestion || loading) {
         return;
       }
 
-      setQuestion(currentQuestion);
       setLoading(true);
       setError('');
 
