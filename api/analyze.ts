@@ -1,4 +1,8 @@
-import { analyzeQuestion } from '../server/analyze.js';
+import {
+  analyzeQuestion,
+  AnalysisUnavailableError,
+  UnsupportedQuestionError,
+} from '../server/analyze.js';
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -12,7 +16,7 @@ function json(data: unknown, status = 200) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
+
     const question =
       typeof body === 'object' &&
       body !== null &&
@@ -21,21 +25,35 @@ export async function POST(req: Request) {
         ? body.question.trim()
         : '';
 
-    if (!question || question.length > 500) {
-      return json({ error: 'נא להזין שאלה באורך סביר.' }, 400);
+    if (!question) {
+      return json({ error: 'נא להזין שאלה.' }, 400);
     }
 
-    return Response.json(await analyzeQuestion(question));
-  } 
-  catch (error) { 
-    return Response.json(
+    if (question.length > 500) {
+      return json({ error: 'השאלה ארוכה מדי. ניתן להזין עד 500 תווים.' }, 400);
+    }
+
+    const result = await analyzeQuestion(question);
+    return json(result);
+  } catch (error) {
+    if (error instanceof UnsupportedQuestionError) {
+      return json({ error: error.message }, error.statusCode);
+    }
+
+    if (error instanceof AnalysisUnavailableError) {
+      return json({ error: error.message }, error.statusCode);
+    }
+
+    console.error('Analysis request failed:', error);
+
+    return json(
       {
         error:
           error instanceof Error
             ? error.message
-            : 'Unknown server error',
+            : 'אירעה שגיאה לא צפויה.',
       },
-      { status: 500 },
+      500,
     );
   }
-} 
+}

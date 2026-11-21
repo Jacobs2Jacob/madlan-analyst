@@ -3,6 +3,24 @@ import { loadTransactions } from './data/load.js';
 import { explain, planQuestion } from './llm/analysis.js';
 import type { AnalysisPlan } from './schemas/analysis.js';
 
+export class AnalysisUnavailableError extends Error {
+  statusCode = 503;
+
+  constructor(message = 'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.') {
+    super(message);
+    this.name = 'AnalysisUnavailableError';
+  }
+}
+
+export class UnsupportedQuestionError extends Error {
+  statusCode = 422;
+
+  constructor(message = 'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.') {
+    super(message);
+    this.name = 'UnsupportedQuestionError';
+  }
+}
+
 export type AnalysisResponse = {
   question: string;
   interpretation: string;
@@ -51,9 +69,13 @@ export async function analyzeQuestion(question: string): Promise<AnalysisRespons
     plan = await planQuestion(question);
   } catch (error) {
     console.error('LLM planning failed:', error);
-    aiAvailable = false;
-    plan = fallbackUnsupportedPlan(
-      'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.',
+    throw new AnalysisUnavailableError();
+  }
+
+  if (plan.status === 'unsupported' || plan.operation === 'unsupported') {
+    throw new UnsupportedQuestionError(
+      plan.reason ??
+        'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
     );
   }
 

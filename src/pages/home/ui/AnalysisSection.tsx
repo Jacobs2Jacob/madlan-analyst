@@ -8,43 +8,59 @@ import styles from './AnalysisSection.module.css';
 type AnalysisSectionProps = {
   question: string;
   setQuestion: (value: string) => void;
-  result: AnalysisResultType | null;
+  results: AnalysisResultType[];
   loading: boolean;
   error: string;
-  analyze: () => void;
+  analyze: (question?: string) => Promise<void>;
   onExplore: () => void;
 };
 
 export function AnalysisSection({
   question,
   setQuestion,
-  result,
+  results,
   loading,
   error,
   analyze,
   onExplore,
 }: AnalysisSectionProps) {
+  const handleSuggestionSelect = (selectedQuestion: string) => {
+    setQuestion(selectedQuestion);
+    void analyze(selectedQuestion);
+  };
+
   return (
     <>
       <div className={styles.block}>
-        <QuestionSuggestions onSelect={setQuestion} />
+        <QuestionSuggestions onSelect={handleSuggestionSelect} />
         <QueryComposer
           value={question}
           onChange={setQuestion}
-          onSubmit={analyze}
+          onSubmit={() => void analyze()}
           loading={loading}
         />
       </div>
 
       {loading && (
-        <div className={styles.loading}>
-          מפרש את השאלה ומחשב את הנתונים…
+        <div className={styles.loading} role="status" aria-live="polite">
+          <span className={styles.spinner} aria-hidden="true" />
+          <span>מפרש את השאלה, מחשב את הנתונים ומכין את התשובה…</span>
         </div>
       )}
 
-      {error && <div className={styles.error}>{error}</div>}
+      {error && (
+        <div className={styles.error} role="alert">
+          {error}
+        </div>
+      )}
 
-      {result && <AnalysisResult result={result} onExplore={onExplore} />}
+      {results.map((result, index) => (
+        <AnalysisResult
+          key={`${result.question}-${index}`}
+          result={result}
+          onExplore={onExplore}
+        />
+      ))}
     </>
   );
 }

@@ -4,60 +4,65 @@ import type { AnalysisResult } from '../../../entities/analysis';
 
 export function useAnalyzeQuestion() {
   const [question, setQuestion] = useState('');
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [results, setResults] = useState<AnalysisResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const analyze = useCallback(async () => {
-    if (!question.trim() || loading) {
-      return;
-    }
+  const analyze = useCallback(
+    async (questionToAnalyze = question) => {
+      const normalizedQuestion = questionToAnalyze.trim();
 
-    setLoading(true);
-    setError('');
+      if (!normalizedQuestion || loading) {
+        return;
+      }
 
-    try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ question: question.trim() }),
-      });
-      console.log(response);
-      const text = await response.text();
-      
-      let body: { error?: string } & Partial<AnalysisResult>;
+      setQuestion(normalizedQuestion);
+      setLoading(true);
+      setError('');
 
       try {
-        body = JSON.parse(text);
-      } 
-      catch {
-        throw new Error(
-          response.ok
-            ? 'השרת החזיר תשובה שאינה JSON.'
-            : `שגיאת שרת (${response.status}).`,
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ question: normalizedQuestion }),
+        });
+
+        const text = await response.text();
+
+        let body: { error?: string } & Partial<AnalysisResult>;
+
+        try {
+          body = JSON.parse(text);
+        } catch {
+          throw new Error(
+            response.ok
+              ? 'השרת החזיר תשובה שאינה JSON.'
+              : `שגיאת שרת (${response.status}).`,
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(body.error || 'אירעה שגיאה בניתוח');
+        }
+
+        setResults((current) => [...current, body as AnalysisResult]);
+      } catch (cause) {
+        setError(
+          cause instanceof Error ? cause.message : 'אירעה שגיאה לא צפויה',
         );
+      } finally {
+        setLoading(false);
       }
-
-      if (!response.ok) {
-        throw new Error(body.error || 'אירעה שגיאה בניתוח');
-      }
-
-      setResult(body as AnalysisResult);
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'אירעה שגיאה לא צפויה',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, question]);
+    },
+    [loading, question],
+  );
 
   return {
     question,
     setQuestion,
-    result,
+    results,
     loading,
     error,
     analyze,
