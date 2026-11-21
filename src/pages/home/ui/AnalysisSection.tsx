@@ -35,6 +35,14 @@ export function AnalysisSection({
         />
       </div>
 
+      {results.map((result, index) => (
+        <AnalysisResult
+          key={`${result.question}-${index}`}
+          result={result}
+          onExplore={onExplore}
+        />
+      ))}
+
       {loading && (
         <div className={styles.loading}>
           <span className={styles.spinner} aria-hidden="true" />
@@ -43,14 +51,7 @@ export function AnalysisSection({
       )}
 
       {error && <div className={styles.error}>{error}</div>}
-
-      {results.map((result, index) => (
-        <AnalysisResult
-          key={`${result.question}-${index}`}
-          result={result}
-          onExplore={onExplore}
-        />
-      ))}
+ 
     </>
   );
 }
