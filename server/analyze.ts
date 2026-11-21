@@ -80,11 +80,17 @@ async function runAnalysis(question: string): Promise<AnalysisResponse> {
 
   try {
     plan = await planQuestion(question);
-  } catch (error) {
-    console.error('LLM planning failed:', error);
+  } 
+  catch (error) {
     aiAvailable = false;
-    plan = fallbackUnsupportedPlan(
-      'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.',
+    console.error('LLM planning failed:', error);
+    throw new AnalysisUnavailableError();
+  }
+
+  if (plan.status === 'unsupported' || plan.operation === 'unsupported') {
+    throw new UnsupportedQuestionError(
+      plan.reason ??
+        'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
     );
   }
 
@@ -138,4 +144,22 @@ export async function analyzeQuestion(question: string): Promise<AnalysisRespons
 
   inFlight.set(key, request);
   return request;
+}
+
+export class AnalysisUnavailableError extends Error {
+  statusCode = 503;
+
+  constructor(message = 'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.') {
+    super(message);
+    this.name = 'AnalysisUnavailableError';
+  }
+}
+
+export class UnsupportedQuestionError extends Error {
+  statusCode = 422;
+
+  constructor(message = 'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.') {
+    super(message);
+    this.name = 'UnsupportedQuestionError';
+  }
 }
