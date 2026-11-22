@@ -1,55 +1,34 @@
-# Madlan Data Explorer
+AI Development Log
 
-Hebrew RTL real-estate transaction explorer and grounded natural-language analyst.
+Intended use of AI
 
-## Architecture
+AI was used throughout development as a development assistant for brainstorming, implementation, debugging, and reviewing architectural decisions.
 
-The frontend follows **Feature-Sliced Design (FSD)** and deliberately keeps the application as a **single page with two child sections**, rather than introducing routing for only two views.
+The final architecture was reviewed and adjusted manually rather than accepting AI-generated solutions blindly.
 
-```text
-src/
-├── app/                 # application shell and global styles
-├── pages/               # page composition
-│   └── home/
-├── features/            # product capabilities and independently meaningful UI
-│   ├── app-header/
-│   ├── data-explorer/
-│   ├── explorer-filter/
-│   ├── explorer-sort/
-│   ├── question-suggestions/
-│   └── analyze-question/
-├── entities/             # domain models and reusable entity UI
-│   ├── transaction/
-│   └── analysis/
-└── shared/                # reusable primitives and utilities
-```
+Bad AI answer caught
 
-### Component design
+An early design direction suggested treating the LLM as a generic chatbot/summary layer over the CSV.
 
-Components are split by responsibility: filters, sorting, summary metrics, transaction table, query composer, suggestions, analysis result, evidence and limitations are independent pieces. Hooks own stateful behavior and derived state; API calls do not live inside presentational components.
+I rejected this approach because it would make the model responsible for calculations and increase the risk of hallucinated numbers.
 
-Memoization is intentional rather than blanket:
-- `useMemo` is used for expensive filtered/sorted/option-derived transaction collections.
-- `useCallback` is used for the analysis request function passed through the component tree.
-- `React.memo` is used for transaction rows/table where repeated rows make stable props valuable.
-- Simple components are not memoized without a measured or structural reason.
+The final design instead constrains the LLM to translate the user's question into a structured analysis plan. The actual filtering, aggregation, ranking, trend analysis, and anomaly detection are performed deterministically by the application.
 
-## Product
+The LLM-generated analysis plan is also validated against a strict schema before execution. The LLM cannot generate arbitrary SQL or code, and it does not directly calculate the numerical results shown to the user.
 
-### חקר הנתונים
-Direct exploration of the normalized transactions: filters, sorting, summary metrics and a scrollable evidence table.
+Analysis flow
 
-### ניתוח ושאלות
-Suggested questions populate the same editable natural-language input. Submitting a question sends it through the constrained LLM planner, deterministic analysis engine and grounded explanation step.
+User question
+     v
+LLM planner
+     v
+Schema validation
+     v
+Deterministic analysis engine
+     v
+LLM explanation
+     v
+User-facing analysis
+When AI is disabled or unavailable, a deterministic fallback planner is used instead.
 
-The core rule is: **the LLM interprets intent and communicates evidence; code calculates the numbers.**
-
-## No router
-
-There is intentionally no React Router. This is one application surface with two child sections, so local UI state is simpler and avoids unnecessary navigation infrastructure.
-
-## Data and deployment
-
-The normalized dataset is bundled with the application. The API key remains server-side. The analysis endpoint validates the LLM plan with Zod and only executes constrained operations.
-
-See `DATA_NOTES.md` and `AI_LOG.md` for data-handling and AI-development notes.
+The LLM interprets and communicates. The application calculates and retrieves.
