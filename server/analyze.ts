@@ -16,20 +16,27 @@ export type AnalysisResponse = {
 };
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
+
 const analysisCache = new Map<
   string,
-  { expiresAt: number; value: AnalysisResponse }
+  {
+    expiresAt: number;
+    value: AnalysisResponse;
+  }
 >();
+
 const inFlight = new Map<string, Promise<AnalysisResponse>>();
 
-function cacheKey(question: string) {
-  return question.trim().replace(/\s+/g, ' ').toLocaleLowerCase('he-IL');
+function cacheKey(plan: AnalysisPlan) {
+  return JSON.stringify(plan);
 }
 
 function getCached(key: string) {
   const cached = analysisCache.get(key);
 
-  if (!cached) return undefined;
+  if (!cached) {
+    return undefined;
+  }
 
   if (cached.expiresAt <= Date.now()) {
     analysisCache.delete(key);
@@ -47,64 +54,41 @@ function setCached(key: string, value: AnalysisResponse) {
 }
 
 function interpretation(plan: AnalysisPlan) {
-  if (plan.operation === 'ranking' || plan.operation === 'group_compare') {
+  if (
+    plan.operation === 'ranking' ||
+    plan.operation === 'group_compare'
+  ) {
     return 'השוואת קבוצות';
   }
-  if (plan.operation === 'trend') return 'מגמת מחירים';
-  if (plan.operation === 'anomalies') return 'איתור עסקאות חריגות';
+
+  if (plan.operation === 'trend') {
+    return 'מגמת מחירים';
+  }
+
+  if (plan.operation === 'anomalies') {
+    return 'איתור עסקאות חריגות';
+  }
+
   return 'ניתוח הנתונים';
 }
 
-function fallbackUnsupportedPlan(reason: string): AnalysisPlan {
-  return {
-    status: 'unsupported',
-    operation: 'unsupported',
-    metric: 'price_per_sqm',
-    aggregation: 'median',
-    groupBy: null,
-    filters: {
-      city: null,
-      neighborhood: null,
-      propertyType: null,
-      rooms: null,
-      condition: null,
-    },
-    limit: 8,
-    reason,
-  };
-}
+async function executeAnalysis(
+  question: string,
+  plan: AnalysisPlan,
+): Promise<AnalysisResponse> {
+  const computed = executePlan(loadTransactions(), plan);
 
-async function runAnalysis(question: string): Promise<AnalysisResponse> {
-  let plan: AnalysisPlan;
+  let summary =
+    computed.limitations[0] ??
+    'הניתוח הושלם על בסיס העסקאות שנמצאו.';
+
   let aiAvailable = true;
 
   try {
-    plan = await planQuestion(question);
-  } 
-  catch (error) {
+    summary = await explain(question, plan, computed);
+  } catch (error) {
+    console.error('LLM explanation failed:', error);
     aiAvailable = false;
-    console.error('LLM planning failed:', error);
-    throw new AnalysisUnavailableError();
-  }
-
-  if (plan.status === 'unsupported' || plan.operation === 'unsupported') {
-    throw new UnsupportedQuestionError(
-      plan.reason ??
-        'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
-    );
-  }
-
-  const computed = executePlan(loadTransactions(), plan);
-  let summary =
-    computed.limitations[0] ?? 'הניתוח הושלם על בסיס העסקאות שנמצאו.';
-
-  if (aiAvailable && plan.status === 'supported') {
-    try {
-      summary = await explain(question, plan, computed);
-    } catch (error) {
-      console.error('LLM explanation failed:', error);
-      aiAvailable = false;
-    }
   }
 
   return {
@@ -120,8 +104,30 @@ async function runAnalysis(question: string): Promise<AnalysisResponse> {
   };
 }
 
-export async function analyzeQuestion(question: string): Promise<AnalysisResponse> {
-  const key = cacheKey(question);
+export async function analyzeQuestion(
+  question: string,
+): Promise<AnalysisResponse> {
+  let plan: AnalysisPlan;
+
+  try {
+    plan = await planQuestion(question);
+  } catch (error) {
+    console.error('LLM planning failed:', error);
+    throw new AnalysisUnavailableError();
+  }
+
+  if (
+    plan.status === 'unsupported' ||
+    plan.operation === 'unsupported'
+  ) {
+    throw new UnsupportedQuestionError(
+      plan.reason ??
+        'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
+    );
+  }
+
+  const key = cacheKey(plan);
+
   const cached = getCached(key);
 
   if (cached) {
@@ -129,11 +135,12 @@ export async function analyzeQuestion(question: string): Promise<AnalysisRespons
   }
 
   const existingRequest = inFlight.get(key);
+
   if (existingRequest) {
     return existingRequest;
   }
 
-  const request = runAnalysis(question)
+  const request = executeAnalysis(question, plan)
     .then((result) => {
       setCached(key, result);
       return result;
@@ -143,13 +150,16 @@ export async function analyzeQuestion(question: string): Promise<AnalysisRespons
     });
 
   inFlight.set(key, request);
+
   return request;
 }
 
 export class AnalysisUnavailableError extends Error {
   statusCode = 503;
 
-  constructor(message = 'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.') {
+  constructor(
+    message = 'שירות ה-AI אינו זמין כרגע. אפשר לנסות שוב מאוחר יותר.',
+  ) {
     super(message);
     this.name = 'AnalysisUnavailableError';
   }
@@ -158,7 +168,9 @@ export class AnalysisUnavailableError extends Error {
 export class UnsupportedQuestionError extends Error {
   statusCode = 422;
 
-  constructor(message = 'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.') {
+  constructor(
+    message = 'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
+  ) {
     super(message);
     this.name = 'UnsupportedQuestionError';
   }
