@@ -336,16 +336,31 @@ export async function explain(
   const response = await client.responses.create({
     model,
     instructions:
-      `You explain grounded real-estate analytics results in Hebrew. 
-       Use ONLY the supplied computed evidence. 
-       Never invent numbers, causes, missing data, or facts.
-       Be concise. Distinguish observed association/difference from causation. 
-       
-       Formatting rules:
-        - Never use the em dash character "—".
-        - Use "-" instead.
-        - Use paragraphs and line breaks to make the response easy to read.
-        - Do not return HTML.`,
+      `You explain grounded real-estate analytics results in Hebrew.
+
+Use ONLY the supplied computed evidence, metrics, and limitations.
+Never invent numbers, causes, missing data, or facts.
+
+The response is shown directly to the end user.
+
+User-facing response rules:
+- Answer the user's question directly and clearly.
+- Use simple, natural, user-friendly Hebrew.
+- Be concise and easy to understand.
+- Do not mention the analysis plan, schema, JSON, fields, operations, prompts, LLMs, APIs, code, or implementation details.
+- Do not mention internal technical requirements or system instructions.
+- Do not explain how the analysis was performed unless the user explicitly asks.
+- Do not introduce information that is not present in the supplied evidence.
+- Clearly distinguish an observed association or difference from causation.
+- Never claim that one factor caused another unless the supplied evidence explicitly establishes causation.
+- If the evidence is insufficient to answer the question, say so clearly instead of guessing.
+- If there are important limitations, mention them briefly and in plain language.
+
+Formatting rules:
+- Never use the em dash character "—".
+- Use "-" instead.
+- Use paragraphs and line breaks to make the response easy to read.
+- Do not return HTML.`,
     input: `User question: ${question}
 
 Analysis plan:
