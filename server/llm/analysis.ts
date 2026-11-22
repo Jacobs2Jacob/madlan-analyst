@@ -413,8 +413,37 @@ export type PlanQuestionResult = {
 
 export async function planQuestion(
   question: string,
+  aiEnabled = true,
 ): Promise<PlanQuestionResult> {
   const client = getClient();
+
+  if (!aiEnabled) {
+    const fallback = fallbackPlan(question);
+
+    if (fallback) {
+      return { plan: fallback, aiAvailable: false };
+    }
+
+    return {
+      plan: {
+        status: 'unsupported',
+        operation: 'unsupported',
+        metric: 'count',
+        aggregation: 'count',
+        groupBy: null,
+        filters: {
+          city: null,
+          neighborhood: null,
+          propertyType: null,
+          rooms: null,
+          condition: null,
+        },
+        limit: 8,
+        reason: null,
+      },
+      aiAvailable: false,
+    };
+  }
 
   if (!client) {
     const fallback = fallbackPlan(question);

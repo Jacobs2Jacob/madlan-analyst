@@ -33,7 +33,15 @@ export async function POST(req: Request) {
       return json({ error: 'השאלה ארוכה מדי. ניתן להזין עד 500 תווים.' }, 400);
     }
 
-    const result = await analyzeQuestion(question);
+    const aiEnabled =
+      typeof body === 'object' &&
+      body !== null &&
+      'aiEnabled' in body &&
+      typeof body.aiEnabled === 'boolean'
+        ? body.aiEnabled
+        : true;
+
+    const result = await analyzeQuestion(question, aiEnabled);
     return json(result);
   } catch (error) {
     if (error instanceof UnsupportedQuestionError) {

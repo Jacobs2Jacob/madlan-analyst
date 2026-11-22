@@ -8,7 +8,7 @@ function normalizeQuestion(question: string) {
   return question.trim().replace(/\s+/g, ' ');
 }
 
-export function useAnalyzeQuestion() {
+export function useAnalyzeQuestion(aiEnabled = true) {
   const queryClient = useQueryClient();
   const [question, setQuestion] = useState('');
   const [results, setResults] = useState<AnalysisResult[]>([]);
@@ -28,7 +28,7 @@ export function useAnalyzeQuestion() {
 
       try {
         const result = await queryClient.fetchQuery({
-          queryKey: ['analysis', currentQuestion],
+          queryKey: ['analysis', currentQuestion, aiEnabled],
           queryFn: async (): Promise<AnalysisResult> => {
             // TODO: move to api
             const response = await fetch('/api/analyze', {
@@ -36,7 +36,7 @@ export function useAnalyzeQuestion() {
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ question: currentQuestion }),
+              body: JSON.stringify({ question: currentQuestion, aiEnabled }),
             });
 
             const text = await response.text();
@@ -71,7 +71,7 @@ export function useAnalyzeQuestion() {
         setQuestion('');
       }
     },
-    [loading, question, queryClient],
+    [aiEnabled, loading, question, queryClient],
   );
 
   return {

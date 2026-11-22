@@ -27,8 +27,8 @@ const analysisCache = new Map<
 
 const inFlight = new Map<string, Promise<AnalysisResponse>>();
 
-function cacheKey(plan: AnalysisPlan) {
-  return JSON.stringify(plan);
+function cacheKey(plan: AnalysisPlan, aiEnabled: boolean) {
+  return JSON.stringify({ plan, aiEnabled });
 }
 
 function getCached(key: string) {
@@ -154,12 +154,13 @@ async function executeAnalysis(
 
 export async function analyzeQuestion(
   question: string,
+  aiEnabled = true,
 ): Promise<AnalysisResponse> {
   let plan: AnalysisPlan;
   let plannerAiAvailable = true;
 
   try {
-    const planned = await planQuestion(question);
+    const planned = await planQuestion(question, aiEnabled);
     plan = planned.plan;
     plannerAiAvailable = planned.aiAvailable;
   } catch (error) {
@@ -171,13 +172,10 @@ export async function analyzeQuestion(
     plan.status === 'unsupported' ||
     plan.operation === 'unsupported'
   ) {
-    throw new UnsupportedQuestionError(
-      plan.reason ??
-        'השאלה אינה נתמכת על ידי סוגי הניתוח הזמינים. נסה שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
-    );
+    throw new UnsupportedQuestionError();
   }
 
-  const key = cacheKey(plan);
+  const key = cacheKey(plan, aiEnabled);
 
   const cached = getCached(key);
 
@@ -193,7 +191,7 @@ export async function analyzeQuestion(
 
   const request = executeAnalysis(question, plan, plannerAiAvailable)
     .then((result) => {
-      if (result.aiAvailable) {
+      if (aiEnabled && result.aiAvailable) {
         setCached(key, result);
       }
       return result;

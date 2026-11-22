@@ -9,12 +9,13 @@ type HomeSection = 'explore' | 'analysis';
 
 export function HomePage() {
   const [section, setSection] = useState<HomeSection>('explore');
+  const [aiEnabled, setAiEnabled] = useState(true);
   const {question,
          setQuestion,
          results,
          loading,
          error,
-         analyze} = useAnalyzeQuestion();
+         analyze} = useAnalyzeQuestion(aiEnabled);
 
   useEffect(()=> {
     window.scrollTo({
@@ -29,6 +30,14 @@ export function HomePage() {
       <AppHeader
         section={section}
         onSectionChange={setSection}
+        aiEnabled={aiEnabled}
+        onAiToggle={() => {
+          setAiEnabled((enabled) => {
+            const nextEnabled = !enabled;
+
+            return nextEnabled;
+          });
+        }}
       />
 
       {section === 'explore' ? (
