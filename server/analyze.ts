@@ -72,23 +72,71 @@ function interpretation(plan: AnalysisPlan) {
   return 'ניתוח הנתונים';
 }
 
+function fallbackSummary(
+  plan: AnalysisPlan,
+  computed: {
+    metrics: Array<{ label: string; value: string }>;
+    evidence: Array<Record<string, string | number | null>>;
+    limitations: string[];
+    analysisRows: number;
+  },
+) {
+  if (computed.analysisRows === 0) {
+    return 'לא נמצאו עסקאות התואמות את הסינון שבשאלה.';
+  }
+
+  const first = computed.evidence[0];
+  const second = computed.evidence[1];
+
+  if (plan.operation === 'trend' && first && second) {
+    const last = computed.evidence[computed.evidence.length - 1];
+    const firstGroup = first['קבוצה'];
+    const firstValue = first['ערך'];
+    const lastGroup = last?.['קבוצה'];
+    const lastValue = last?.['ערך'];
+
+    if (last && firstGroup !== lastGroup) {
+      return `לפי הנתונים, המחיר השתנה מ-${firstValue} בשנת ${firstGroup} ל-${lastValue} בשנת ${lastGroup}. הנתונים מתארים את השינוי שנצפה בעסקאות שנכללו בניתוח.`;
+    }
+  }
+
+  if (plan.operation === 'group_compare' && first && second) {
+    return `לפי הנתונים, ${first['קבוצה']} הציג ערך של ${first['ערך']}, לעומת ${second['ערך']} עבור ${second['קבוצה']}. מדובר בהבדל שנצפה בנתונים ולא בהוכחה לקשר סיבתי.`;
+  }
+
+  if (plan.operation === 'ranking' && first) {
+    const top = computed.evidence
+      .slice(0, 3)
+      .map((row) => `${row['קבוצה']}: ${row['ערך']}`)
+      .join(', ');
+
+    return `לפי הנתונים, הקבוצות המובילות בדירוג הן: ${top}. הדירוג מבוסס על העסקאות שנמצאות בדאטה שסופק.`;
+  }
+
+  if (plan.operation === 'anomalies') {
+    return `נמצאו ${computed.evidence.length} עסקאות שנראות חריגות ביחס למחיר למ״ר החציוני של העסקאות שנבדקו. חריגה אינה אומרת שהעסקה שגויה.`;
+  }
+
+  return 'הניתוח הושלם על בסיס העסקאות שנמצאו. הנתונים המוצגים למטה מבוססים על החישוב שבוצע.';
+}
+
 async function executeAnalysis(
   question: string,
   plan: AnalysisPlan,
+  plannerAiAvailable = true,
 ): Promise<AnalysisResponse> {
   const computed = executePlan(loadTransactions(), plan);
 
-  let summary =
-    computed.limitations[0] ??
-    'הניתוח הושלם על בסיס העסקאות שנמצאו.';
+  let summary = fallbackSummary(plan, computed);
+  let aiAvailable = plannerAiAvailable;
 
-  let aiAvailable = true;
-
-  try {
-    summary = await explain(question, plan, computed);
-  } catch (error) {
-    console.error('LLM explanation failed:', error);
-    aiAvailable = false;
+  if (plannerAiAvailable) {
+    try {
+      summary = await explain(question, plan, computed);
+    } catch (error) {
+      console.error('LLM explanation failed:', error);
+      aiAvailable = false;
+    }
   }
 
   return {
@@ -108,11 +156,14 @@ export async function analyzeQuestion(
   question: string,
 ): Promise<AnalysisResponse> {
   let plan: AnalysisPlan;
+  let plannerAiAvailable = true;
 
   try {
-    plan = await planQuestion(question);
+    const planned = await planQuestion(question);
+    plan = planned.plan;
+    plannerAiAvailable = planned.aiAvailable;
   } catch (error) {
-    console.error('LLM planning failed:', error);
+    console.error('LLM planning failed and no deterministic fallback matched:', error);
     throw new AnalysisUnavailableError();
   }
 
@@ -140,9 +191,11 @@ export async function analyzeQuestion(
     return existingRequest;
   }
 
-  const request = executeAnalysis(question, plan)
+  const request = executeAnalysis(question, plan, plannerAiAvailable)
     .then((result) => {
-      setCached(key, result);
+      if (result.aiAvailable) {
+        setCached(key, result);
+      }
       return result;
     })
     .finally(() => {

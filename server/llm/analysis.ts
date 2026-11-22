@@ -14,82 +14,180 @@ function getClient() {
 }
 
 function fallbackPlan(question: string): AnalysisPlan | null {
-  const q = question.trim();
+  const q = question
+    .trim()
+    .toLocaleLowerCase('he-IL')
+    .replace(/[?!.:,;"'״׳]/g, ' ')
+    .replace(/\s+/g, ' ');
 
-  if (q === 'האם דירות עם חניה נמכרות במחיר גבוה יותר?') {
-    return {
-      status: 'supported',
-      operation: 'group_compare',
-      metric: 'price_per_sqm',
-      aggregation: 'median',
-      groupBy: 'has_parking',
-      filters: {
-        city: null,
-        neighborhood: null,
-        propertyType: 'דירה',
-        rooms: null,
-        condition: null,
-      },
-      limit: 2,
-      reason: null,
-    };
-  }
+  const transactions = loadTransactions();
+  const cities = [...new Set(transactions.map((row) => row.city))];
+  const propertyTypes = [...new Set(transactions.map((row) => row.propertyType))];
+  const conditions = [
+    ...new Set(
+      transactions
+        .map((row) => row.condition)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
 
-  if (q === 'אילו ערים הכי יקרות לדירות 4 חדרים?') {
-    return {
-      status: 'supported',
-      operation: 'ranking',
-      metric: 'price_per_sqm',
-      aggregation: 'median',
-      groupBy: 'city',
-      filters: {
-        city: null,
-        neighborhood: null,
-        propertyType: 'דירה',
-        rooms: 4,
-        condition: null,
-      },
-      limit: 8,
-      reason: null,
-    };
-  }
+  const filters: AnalysisPlan['filters'] = {
+    city: null,
+    neighborhood: null,
+    propertyType: null,
+    rooms: null,
+    condition: null,
+  };
 
-  if (q === 'איך השתנה המחיר למ״ר לאורך זמן?') {
+  const city = cities.find((value) => q.includes(value.toLocaleLowerCase('he-IL')));
+  const propertyType = propertyTypes.find((value) =>
+    q.includes(value.toLocaleLowerCase('he-IL')),
+  );
+  const condition = conditions.find((value) =>
+    q.includes(value.toLocaleLowerCase('he-IL')),
+  );
+  const roomsMatch = q.match(/(?:דירות?|בתים?)?\s*(\d+(?:\.5)?)\s*חדרים?/);
+
+  if (city) filters.city = city;
+  if (propertyType) filters.propertyType = propertyType;
+  if (condition) filters.condition = condition;
+  if (roomsMatch) filters.rooms = Number(roomsMatch[1]);
+
+  const hasTrendIntent = [
+    'לאורך זמן',
+    'לאורך השנים',
+    'עם השנים',
+    'מגמה',
+    'מגמת',
+    'השתנה',
+    'השתנו',
+    'עלייה',
+    'ירידה',
+    'עלה',
+    'עלו',
+    'ירד',
+    'ירדו',
+    'משנה לשנה',
+    'במהלך השנים',
+  ].some((term) => q.includes(term));
+
+  if (hasTrendIntent) {
     return {
       status: 'supported',
       operation: 'trend',
-      metric: 'price_per_sqm',
+      metric: q.includes('מחיר העסקה') || q.includes('מחיר הדירה') || q.includes('מחיר כולל')
+        ? 'price_nis'
+        : 'price_per_sqm',
       aggregation: 'median',
       groupBy: 'year',
-      filters: {
-        city: null,
-        neighborhood: null,
-        propertyType: null,
-        rooms: null,
-        condition: null,
-      },
+      filters,
       limit: 8,
       reason: null,
     };
   }
 
-  if (q === 'מצא עסקאות שנראות חריגות ביחס לעסקאות דומות.') {
+  const hasAnomalyIntent = [
+    'חריג',
+    'חריגות',
+    'יוצאות דופן',
+    'קיצוניות',
+    'חשודות',
+    'לא רגילות',
+  ].some((term) => q.includes(term));
+
+  if (hasAnomalyIntent) {
     return {
       status: 'supported',
       operation: 'anomalies',
-      metric: 'price_per_sqm',
+      metric: q.includes('מחיר העסקה') || q.includes('מחיר הדירה') || q.includes('מחיר כולל')
+        ? 'price_nis'
+        : 'price_per_sqm',
       aggregation: 'median',
       groupBy: null,
-      filters: {
-        city: null,
-        neighborhood: null,
-        propertyType: null,
-        rooms: null,
-        condition: null,
-      },
+      filters,
       limit: 8,
       reason: null,
     };
+  }
+
+  const wantsRanking = [
+    'הכי יקר',
+    'הכי יקרה',
+    'הכי יקרים',
+    'הכי זול',
+    'הכי זולה',
+    'הכי זולים',
+    'היקרות',
+    'היקרים',
+    'הזולות',
+    'הזולים',
+    'הגבוהות',
+    'הנמוכות',
+    'הדירוג',
+    'מובילות',
+    'מובילים',
+  ].some((term) => q.includes(term));
+
+  if (wantsRanking) {
+    let groupBy: AnalysisPlan['groupBy'] = null;
+
+    if (q.includes('ערים') || q.includes('עיר')) groupBy = 'city';
+    else if (q.includes('שכונות') || q.includes('שכונה')) groupBy = 'neighborhood';
+    else if (q.includes('חניה')) groupBy = 'has_parking';
+    else if (q.includes('מעלית')) groupBy = 'has_elevator';
+    else if (q.includes('מצב') || q.includes('מצב הנכס')) groupBy = 'condition';
+
+    if (groupBy) {
+      return {
+        status: 'supported',
+        operation: 'ranking',
+        metric: q.includes('מחיר העסקה') || q.includes('מחיר הדירה') || q.includes('מחיר כולל')
+          ? 'price_nis'
+          : 'price_per_sqm',
+        aggregation: 'median',
+        groupBy,
+        filters,
+        limit: 8,
+        reason: null,
+      };
+    }
+  }
+
+  const wantsComparison = [
+    'השווה',
+    'השוואה',
+    'הבדל',
+    'הבדלים',
+    'האם',
+    'יותר',
+    'פחות',
+    'לעומת',
+    'בהשוואה',
+  ].some((term) => q.includes(term));
+
+  if (wantsComparison) {
+    let groupBy: AnalysisPlan['groupBy'] = null;
+
+    if (q.includes('חניה')) groupBy = 'has_parking';
+    else if (q.includes('מעלית')) groupBy = 'has_elevator';
+    else if (q.includes('ערים') || q.includes('עיר')) groupBy = 'city';
+    else if (q.includes('שכונות') || q.includes('שכונה')) groupBy = 'neighborhood';
+    else if (q.includes('מצב') || q.includes('משופץ') || q.includes('שמור')) groupBy = 'condition';
+
+    if (groupBy) {
+      return {
+        status: 'supported',
+        operation: 'group_compare',
+        metric: q.includes('מחיר העסקה') || q.includes('מחיר הדירה') || q.includes('מחיר כולל')
+          ? 'price_nis'
+          : 'price_per_sqm',
+        aggregation: 'median',
+        groupBy,
+        filters,
+        limit: 8,
+        reason: null,
+      };
+    }
   }
 
   return null;
@@ -296,30 +394,55 @@ GENERAL PRINCIPLES:
 - Always return JSON matching the provided schema and nothing else.`;
 }
 
-export async function planQuestion(question: string): Promise<AnalysisPlan> {
+export type PlanQuestionResult = {
+  plan: AnalysisPlan;
+  aiAvailable: boolean;
+};
+
+export async function planQuestion(
+  question: string,
+): Promise<PlanQuestionResult> {
   const client = getClient();
 
   if (!client) {
     const fallback = fallbackPlan(question);
-    if (fallback) return fallback;
+    if (fallback) {
+      return { plan: fallback, aiAvailable: false };
+    }
+
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const response = await client.responses.create({
-    model,
-    instructions: plannerPrompt(),
-    input: question,
-    text: {
-      format: {
-        type: 'json_schema',
-        name: 'analysis_plan',
-        strict: true,
-        schema: analysisPlanJsonSchema,
+  try {
+    const response = await client.responses.create({
+      model,
+      instructions: plannerPrompt(),
+      input: question,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'analysis_plan',
+          strict: true,
+          schema: analysisPlanJsonSchema,
+        },
       },
-    },
-  });
+    });
 
-  return analysisPlanSchema.parse(JSON.parse(response.output_text));
+    const plan = analysisPlanSchema.parse(
+      JSON.parse(response.output_text),
+    );
+
+    return { plan, aiAvailable: true };
+  } catch (error) {
+    console.error('LLM planning failed, trying deterministic fallback:', error);
+
+    const fallback = fallbackPlan(question);
+    if (fallback) {
+      return { plan: fallback, aiAvailable: false };
+    }
+
+    throw error;
+  }
 }
 
 export async function explain(
