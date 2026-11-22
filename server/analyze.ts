@@ -164,7 +164,7 @@ export async function analyzeQuestion(
     plannerAiAvailable = planned.aiAvailable;
   } catch (error) {
     console.error('LLM planning failed and no deterministic fallback matched:', error);
-    throw new AnalysisUnavailableError();
+    throw new FallbackAnalysisUnavailableError();
   }
 
   if (
@@ -215,6 +215,18 @@ export class AnalysisUnavailableError extends Error {
   ) {
     super(message);
     this.name = 'AnalysisUnavailableError';
+  }
+}
+
+export class FallbackAnalysisUnavailableError extends Error {
+  statusCode = 422;
+
+  constructor(
+    message =
+      'לא ניתן לנתח את השאלה כרגע. נסה לנסח שאלה על מחירים, ערים, מאפייני דירה, מגמות או עסקאות חריגות.',
+  ) {
+    super(message);
+    this.name = 'FallbackAnalysisUnavailableError';
   }
 }
 
