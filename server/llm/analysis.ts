@@ -483,7 +483,8 @@ Formatting rules:
 - Never use the em dash character "—".
 - Use "-" instead.
 - Use paragraphs and line breaks to make the response easy to read.
-- Do not return HTML.`,
+- Do not return HTML.
+- Your answers must be in hebrew language.`,
     input: `User question: ${question}
 
 Analysis plan:
