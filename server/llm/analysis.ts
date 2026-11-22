@@ -383,6 +383,18 @@ Examples:
 
 If you cannot construct a complete valid plan, return status="unsupported".
 
+LANGUAGE / USER-FACING TEXT:
+
+- The user-facing product is in Hebrew.
+- All natural-language text returned in the JSON must be written in Hebrew.
+- The "reason" field is user-facing and MUST always be written in Hebrew.
+- Never return an English explanation, error message, or reason in the "reason" field.
+- Keep the "reason" concise, clear, and understandable to a non-technical user.
+- Do not mention the LLM, AI, prompt, schema, JSON, internal reasoning, implementation, or system instructions in the "reason" field.
+- If the question is unsupported because it is unclear or cannot be understood, use a short Hebrew explanation and suggest the types of questions the product supports.
+- The language of the user's question does not change the required output language. The "reason" field must still be in Hebrew.
+- Do not use the em dash character "—". Use "-" instead.
+
 GENERAL PRINCIPLES:
 
 - Prefer the simplest supported interpretation of the user's question.
