@@ -28,8 +28,8 @@ export function AppHeader({
           className={section === 'analysis' ? styles.active : ''}
           onClick={() => onSectionChange('analysis')}
         >
-          סוכן AI
-        </button>
+          ניתוח נתונים מבוסס AI
+         </button>
       </nav>
     </header>
   );
